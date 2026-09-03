@@ -80,19 +80,19 @@ npm start
 The server will start on port **6000**:
 ```
 🎥 CodeAlpha Video Conferencing & Real-Time App is running!
-🌐 URL: http://localhost:6000
+🌐 URL: http://localhost:7000
 ⚡ WebRTC Signaling Server active via Socket.io
 ```
 
 ### Step 3: Open in Browser
 Visit the following URL in your web browser:
 ```
-http://localhost:6000
+http://localhost:7000
 ```
 
 ### Step 4: Quick Demo Login
 You can either create a new account or click **Auto-fill Demo Credentials** on the login page:
-- **Email**: `gourav@codealpha.com`
+- **Email**: `alex@codealpha.com`
 - **Password**: `password123`
 
 ---

@@ -30,7 +30,7 @@ async function runTests() {
   const testEmail = `host_${timestamp}@example.com`;
   const regRes = await request({
     hostname: 'localhost',
-    port: 6000,
+    port: 7000,
     path: '/api/auth/register',
     method: 'POST',
     headers: { 'Content-Type': 'application/json' }
@@ -47,7 +47,7 @@ async function runTests() {
   console.log('\n[2] Testing POST /api/auth/login:');
   const loginRes = await request({
     hostname: 'localhost',
-    port: 6000,
+    port: 7000,
     path: '/api/auth/login',
     method: 'POST',
     headers: { 'Content-Type': 'application/json' }

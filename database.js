@@ -62,14 +62,14 @@ db.serialize(() => {
       `);
 
       insertUser.run(
-        'Gourav Sharma',
-        'gourav@codealpha.com',
+        'Alex Johnson',
+        'alex@codealpha.com',
         hashedPassword,
-        'https://api.dicebear.com/7.x/bottts/svg?seed=Gourav'
+        'https://api.dicebear.com/7.x/bottts/svg?seed=Alex'
       );
       insertUser.finalize();
 
-      console.log('Demo user created: gourav@codealpha.com / password123');
+      console.log('Demo user created: alex@codealpha.com / password123');
     }
   });
 });

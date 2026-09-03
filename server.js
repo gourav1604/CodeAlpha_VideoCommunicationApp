@@ -21,7 +21,7 @@ const io = new Server(server, {
   }
 });
 
-const PORT = process.env.PORT || 6000;
+const PORT = process.env.PORT || 7000;
 const JWT_SECRET = process.env.JWT_SECRET || 'codealpha_video_comm_secret_2026';
 
 // Middleware for parsing JSON requests and serving static frontend files
