@@ -62,7 +62,7 @@ async function runTests() {
   console.log('\n[3] Testing POST /api/rooms (Meeting Rooms):');
   const roomRes = await request({
     hostname: 'localhost',
-    port: 6000,
+    port: 7000,
     path: '/api/rooms',
     method: 'POST',
     headers: {
@@ -79,7 +79,7 @@ async function runTests() {
   console.log('\n[4] Testing GET /api/rooms:');
   const getRoomsRes = await request({
     hostname: 'localhost',
-    port: 6000,
+    port: 7000,
     path: '/api/rooms',
     method: 'GET',
     headers: { 'Authorization': `Bearer ${token}` }

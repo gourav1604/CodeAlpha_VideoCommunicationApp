@@ -77,7 +77,7 @@ npm install
 ```bash
 npm start
 ```
-The server will start on port **6000**:
+The server will start on port **7000**:
 ```
 🎥 CodeAlpha Video Conferencing & Real-Time App is running!
 🌐 URL: http://localhost:7000
