@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sign In / Register — CodeAlpha Connect</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body style="display:flex; align-items:center; justify-content:center; min-height:100vh;">
+
+  <div class="auth-container">
+    <div style="text-align:center; margin-bottom:24px;">
+      <div style="width:44px; height:44px; background:#3b82f6; border-radius:10px; display:flex; align-items:center; justify-content:center; font-weight:800; font-size:1.3rem; color:#fff; margin:0 auto 12px;">V</div>
+      <h2 style="font-size:1.4rem; font-weight:800; color:#fff;">CodeAlpha Connect</h2>
+      <p style="color:#94a3b8; font-size:0.88rem; margin-top:4px;">Sign in to start or join video meetings</p>
+    </div>
+
+    <!-- Auth Tabs -->
+    <div style="display:flex; border-bottom:1px solid #333a4d; margin-bottom:20px;">
+      <button type="button" id="tabLoginBtn" class="drawer-tab active" onclick="switchAuthTab('login')">Sign In</button>
+      <button type="button" id="tabRegBtn" class="drawer-tab" onclick="switchAuthTab('register')">Create Account</button>
+    </div>
+
+    <div id="authAlert" style="display:none; padding:10px 12px; border-radius:8px; margin-bottom:16px; font-size:0.85rem;"></div>
+
+    <!-- Login Form -->
+    <form id="loginForm" onsubmit="handleLogin(event)">
+      <div style="margin-bottom:14px;">
+        <label style="display:block; font-size:0.85rem; margin-bottom:6px; color:#cbd5e1;">Email Address</label>
+        <input type="email" id="loginEmail" class="form-input" style="margin-bottom:0;" placeholder="gourav@codealpha.com" required>
+      </div>
+      <div style="margin-bottom:18px;">
+        <label style="display:block; font-size:0.85rem; margin-bottom:6px; color:#cbd5e1;">Password</label>
+        <input type="password" id="loginPassword" class="form-input" style="margin-bottom:0;" placeholder="••••••••" required>
+      </div>
+      <button type="submit" class="btn btn-primary" style="width:100%; justify-content:center; padding:11px;">Sign In to Connect</button>
+    </form>
+
+    <!-- Register Form -->
+    <form id="registerForm" onsubmit="handleRegister(event)" style="display:none;">
+      <div style="margin-bottom:14px;">
+        <label style="display:block; font-size:0.85rem; margin-bottom:6px; color:#cbd5e1;">Full Name</label>
+        <input type="text" id="regName" class="form-input" style="margin-bottom:0;" placeholder="Gourav Sharma" required>
+      </div>
+      <div style="margin-bottom:14px;">
+        <label style="display:block; font-size:0.85rem; margin-bottom:6px; color:#cbd5e1;">Email Address</label>
+        <input type="email" id="regEmail" class="form-input" style="margin-bottom:0;" placeholder="gourav@example.com" required>
+      </div>
+      <div style="margin-bottom:18px;">
+        <label style="display:block; font-size:0.85rem; margin-bottom:6px; color:#cbd5e1;">Password (min 6 chars)</label>
+        <input type="password" id="regPassword" class="form-input" style="margin-bottom:0;" placeholder="••••••••" minlength="6" required>
+      </div>
+      <button type="submit" class="btn btn-primary" style="width:100%; justify-content:center; padding:11px;">Create Account</button>
+    </form>
+
+    <!-- Demo Quick Login Helper -->
+    <div style="background:#12141a; border:1px dashed #333a4d; border-radius:8px; padding:12px; margin-top:20px; font-size:0.82rem; color:#94a3b8;">
+      <strong>Quick Demo Account:</strong>
+      <p style="margin-top:2px;">Email: <code>gourav@codealpha.com</code> | Pass: <code>password123</code></p>
+      <button type="button" onclick="fillDemoCredentials()" style="background:none; border:1px solid #3b82f6; color:#60a5fa; border-radius:4px; padding:4px 8px; font-size:0.75rem; margin-top:6px; cursor:pointer;">⚡ Auto-fill Demo Credentials</button>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+  <script>
+    function switchAuthTab(tab) {
+      const loginForm = document.getElementById('loginForm');
+      const regForm = document.getElementById('registerForm');
+      const tabLoginBtn = document.getElementById('tabLoginBtn');
+      const tabRegBtn = document.getElementById('tabRegBtn');
+      document.getElementById('authAlert').style.display = 'none';
+
+      if (tab === 'login') {
+        loginForm.style.display = 'block';
+        regForm.style.display = 'none';
+        tabLoginBtn.classList.add('active');
+        tabRegBtn.classList.remove('active');
+      } else {
+        loginForm.style.display = 'none';
+        regForm.style.display = 'block';
+        tabRegBtn.classList.add('active');
+        tabLoginBtn.classList.remove('active');
+      }
+    }
+
+    function fillDemoCredentials() {
+      switchAuthTab('login');
+      document.getElementById('loginEmail').value = 'gourav@codealpha.com';
+      document.getElementById('loginPassword').value = 'password123';
+    }
+
+    function showAlert(msg, isError = true) {
+      const alertBox = document.getElementById('authAlert');
+      alertBox.style.display = 'block';
+      alertBox.textContent = msg;
+      alertBox.style.backgroundColor = isError ? 'rgba(239, 68, 68, 0.2)' : 'rgba(34, 197, 94, 0.2)';
+      alertBox.style.color = isError ? '#f87171' : '#4ade80';
+      alertBox.style.border = `1px solid ${isError ? '#ef4444' : '#22c55e'}`;
+    }
+
+    async function handleLogin(e) {
+      e.preventDefault();
+      const email = document.getElementById('loginEmail').value.trim();
+      const password = document.getElementById('loginPassword').value;
+
+      try {
+        const res = await fetch('/api/auth/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, password })
+        });
+        const data = await res.json();
+
+        if (res.ok) {
+          showAlert('Welcome back! Opening dashboard...', false);
+          setAuthSession(data.token, data.user);
+          setTimeout(() => window.location.href = 'index.html', 700);
+        } else {
+          showAlert(data.error || 'Login failed');
+        }
+      } catch (err) {
+        showAlert('Could not connect to server');
+      }
+    }
+
+    async function handleRegister(e) {
+      e.preventDefault();
+      const name = document.getElementById('regName').value.trim();
+      const email = document.getElementById('regEmail').value.trim();
+      const password = document.getElementById('regPassword').value;
+
+      try {
+        const res = await fetch('/api/auth/register', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name, email, password })
+        });
+        const data = await res.json();
+
+        if (res.ok) {
+          showAlert('Account created! Opening dashboard...', false);
+          setAuthSession(data.token, data.user);
+          setTimeout(() => window.location.href = 'index.html', 700);
+        } else {
+          showAlert(data.error || 'Registration failed');
+        }
+      } catch (err) {
+        showAlert('Could not connect to server');
+      }
+    }
+  </script>
+</body>
+</html>

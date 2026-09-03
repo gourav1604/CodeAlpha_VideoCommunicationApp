@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Meeting Room — CodeAlpha Connect</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body style="height: 100vh; overflow: hidden;">
+
+  <!-- Room Top Bar -->
+  <header class="navbar" style="padding: 10px 20px;">
+    <div style="display:flex; align-items:center; gap:16px;">
+      <a href="index.html" class="brand-logo">
+        <div style="width:30px; height:30px; background:#3b82f6; border-radius:6px; display:flex; align-items:center; justify-content:center; font-weight:800; color:#fff;">V</div>
+        <span style="font-weight:700; font-size:1.05rem;">CodeAlpha Connect</span>
+      </a>
+
+      <!-- Room Code Badge & Copy Link -->
+      <div style="display:flex; align-items:center; gap:8px; background:#12141a; padding:6px 12px; border-radius:8px; border:1px solid #333a4d;">
+        <span style="font-size:0.85rem; color:#94a3b8;">Room:</span>
+        <strong id="displayRoomCode" style="color:#60a5fa; font-family:monospace;">loading...</strong>
+        <button onclick="copyMeetingLink()" class="btn btn-secondary" style="padding:2px 8px; font-size:0.75rem;">📋 Copy Link</button>
+      </div>
+    </div>
+
+    <div>
+      <button class="btn btn-danger" onclick="leaveMeeting()">Leave Meeting</button>
+    </div>
+  </header>
+
+  <!-- Video Conference Stage & Drawer -->
+  <div class="room-container">
+    <main class="video-stage">
+      <!-- Multi-User Video Grid -->
+      <div class="video-grid" id="videoGrid">
+        <!-- Local User Tile -->
+        <div class="video-tile local-user" id="tile-local">
+          <video id="localVideo" autoplay playsinline muted></video>
+          <div class="participant-label">
+            <span>👤</span>
+            <span id="localUserName">You</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Floating Controls Bar (Google Meet Style) -->
+      <div class="controls-bar">
+        <!-- Mic Toggle -->
+        <button class="control-btn" id="btnToggleMic" onclick="toggleMicrophone()" title="Mute / Unmute Mic">
+          <svg viewBox="0 0 24 24"><path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3z"/><path d="M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/></svg>
+        </button>
+
+        <!-- Camera Toggle -->
+        <button class="control-btn" id="btnToggleVideo" onclick="toggleCamera()" title="Turn Camera On / Off">
+          <svg viewBox="0 0 24 24"><path d="M17 10.5V7c0-.55-.45-1-1-1H4c-.55 0-1 .45-1 1v10c0 .55.45 1 1 1h12c.55 0 1-.45 1-1v-3.5l4 4v-11l-4 4z"/></svg>
+        </button>
+
+        <!-- Screen Share -->
+        <button class="control-btn" id="btnScreenShare" onclick="toggleScreenShare()" title="Share Screen">
+          <svg viewBox="0 0 24 24"><path d="M20 18c1.1 0 1.99-.9 1.99-2L22 6c0-1.11-.9-2-2-2H4c-1.11 0-2 .89-2 2v10c0 1.1.89 2 2 2H0v2h24v-2h-4zM4 6h16v10H4V6z"/></svg>
+        </button>
+
+        <!-- Whiteboard Modal Toggle -->
+        <button class="control-btn" id="btnWhiteboard" onclick="toggleWhiteboardModal()" title="Collaborative Whiteboard">
+          <svg viewBox="0 0 24 24"><path d="M3 3v18h18V3H3zm16 16H5V5h14v14zM7 7h10v2H7zm0 4h10v2H7zm0 4h7v2H7z"/></svg>
+        </button>
+
+        <!-- Chat / Files Drawer Toggle -->
+        <button class="control-btn" id="btnChat" onclick="toggleChatDrawer()" title="Chat & File Sharing">
+          <svg viewBox="0 0 24 24"><path d="M20 2H4c-1.1 0-1.99.9-1.99 2L2 22l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zM6 9h12v2H6V9zm8 5H6v-2h8v2zm4-6H6V6h12v2z"/></svg>
+        </button>
+
+        <!-- Leave Call Button -->
+        <button class="control-btn control-btn-end" onclick="leaveMeeting()" title="End Call">
+          <svg viewBox="0 0 24 24"><path d="M12 9c-1.6 0-3.15.25-4.6.72v3.1c0 .39-.23.74-.56.9-.98.49-1.87 1.12-2.66 1.85-.18.18-.43.28-.7.28-.28 0-.53-.11-.71-.29L.29 13.08c-.18-.17-.29-.42-.29-.7 0-.28.11-.53.29-.71C3.34 8.78 7.46 7 12 7s8.66 1.78 11.71 4.67c.18.18.29.43.29.71 0 .28-.11.53-.29.71l-2.48 2.48c-.18.18-.43.29-.71.29-.27 0-.52-.11-.7-.28-.79-.74-1.69-1.36-2.67-1.85-.33-.16-.56-.5-.56-.9v-3.1C15.15 9.25 13.6 9 12 9z"/></svg>
+        </button>
+      </div>
+    </main>
+
+    <!-- Slide-out In-Call Chat & File Share Drawer -->
+    <aside class="side-drawer" id="chatDrawer">
+      <div class="drawer-header">
+        <span class="drawer-title">In-Call Messages</span>
+        <button onclick="toggleChatDrawer()" style="background:none; border:none; color:#94a3b8; font-size:1.3rem; cursor:pointer;">&times;</button>
+      </div>
+
+      <!-- Messages Stream -->
+      <div class="chat-messages" id="chatMessages">
+        <p style="color:#64748b; font-size:0.82rem; text-align:center;">Messages shared here are visible to everyone in this meeting room.</p>
+      </div>
+
+      <!-- Message Input & File Sharing Box -->
+      <form class="chat-input-box" onsubmit="sendChatMessage(event)">
+        <!-- File Upload Button -->
+        <label for="fileUploadInput" class="btn btn-secondary" style="padding:8px 10px; cursor:pointer;" title="Share File">
+          📎
+          <input type="file" id="fileUploadInput" style="display:none;" onchange="handleFileUpload(event)">
+        </label>
+        <input type="text" id="chatInput" class="form-input" style="margin-bottom:0;" placeholder="Send message to everyone..." required>
+        <button type="submit" class="btn btn-primary" style="padding:8px 14px;">Send</button>
+      </form>
+    </aside>
+  </div>
+
+  <!-- Interactive Collaborative Whiteboard Modal -->
+  <div class="whiteboard-modal" id="whiteboardModal">
+    <div class="whiteboard-card">
+      <!-- Toolbar -->
+      <div class="whiteboard-toolbar">
+        <div class="whiteboard-tools">
+          <strong style="font-size:0.95rem;">🎨 Team Whiteboard</strong>
+          
+          <!-- Pencil / Eraser -->
+          <button type="button" class="tool-btn active" id="btnPen" onclick="setTool('pen')">✏️ Pen</button>
+          <button type="button" class="tool-btn" id="btnEraser" onclick="setTool('eraser')">🧹 Eraser</button>
+
+          <!-- Color Palette -->
+          <div style="display:flex; gap:6px; align-items:center; margin-left:10px;">
+            <span style="font-size:0.8rem; font-weight:600;">Color:</span>
+            <input type="color" id="whiteboardColor" value="#0f172a" style="border:none; width:28px; height:28px; cursor:pointer; background:none;" onchange="drawColor = this.value">
+          </div>
+
+          <!-- Brush Size -->
+          <div style="display:flex; gap:6px; align-items:center; margin-left:10px;">
+            <span style="font-size:0.8rem; font-weight:600;">Size:</span>
+            <input type="range" min="1" max="20" value="3" style="cursor:pointer;" onchange="brushSize = this.value">
+          </div>
+
+          <button type="button" class="tool-btn" style="color:#ef4444; border-color:#fca5a5;" onclick="triggerClearWhiteboard()">🗑️ Clear Board</button>
+        </div>
+
+        <button onclick="toggleWhiteboardModal()" style="background:none; border:none; font-size:1.4rem; cursor:pointer; color:#475569;">&times;</button>
+      </div>
+
+      <!-- Canvas Surface -->
+      <canvas id="whiteboardCanvas"></canvas>
+    </div>
+  </div>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="app.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', async () => {
+      if (checkAuthProtection()) {
+        const urlParams = new URLSearchParams(window.location.search);
+        const roomId = urlParams.get('room');
+
+        if (!roomId) {
+          window.location.href = 'index.html';
+          return;
+        }
+
+        document.getElementById('displayRoomCode').textContent = roomId;
+        const user = getStoredUser();
+        if (user) {
+          document.getElementById('localUserName').textContent = `${user.name} (You)`;
+        }
+
+        // 1. Initialize user media (camera/mic)
+        await startLocalMedia();
+
+        // 2. Initialize WebRTC signaling and join room
+        initializeMeetingRoom(roomId);
+      }
+    });
+
+    function setTool(tool) {
+      const penBtn = document.getElementById('btnPen');
+      const eraserBtn = document.getElementById('btnEraser');
+
+      if (tool === 'pen') {
+        isEraser = false;
+        penBtn.classList.add('active');
+        eraserBtn.classList.remove('active');
+      } else {
+        isEraser = true;
+        eraserBtn.classList.add('active');
+        penBtn.classList.remove('active');
+      }
+    }
+
+    function copyMeetingLink() {
+      navigator.clipboard.writeText(window.location.href);
+      alert('Meeting room link copied to clipboard! Share with your team.');
+    }
+  </script>
+</body>
+</html>

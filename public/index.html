@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dashboard — CodeAlpha Video Connect</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <!-- Navigation Bar -->
+  <header class="navbar">
+    <a href="index.html" class="brand-logo">
+      <div style="width:34px; height:34px; background:#3b82f6; border-radius:8px; display:flex; align-items:center; justify-content:center; font-weight:800; color:#fff;">V</div>
+      <div>
+        <h1 style="font-size:1.15rem; font-weight:700;">CodeAlpha Connect</h1>
+      </div>
+      <span class="brand-badge">Real-Time WebRTC</span>
+    </a>
+
+    <div style="display:flex; align-items:center; gap:16px;">
+      <span style="font-size:0.9rem; color:#94a3b8;">Welcome, <strong id="navUserName" style="color:#fff;">Developer</strong></span>
+      <button class="btn btn-secondary" onclick="logout()">Sign Out</button>
+    </div>
+  </header>
+
+  <!-- Dashboard Main Container -->
+  <main class="dashboard-wrap">
+    <!-- Hero Banner & Actions -->
+    <div class="hero-card">
+      <div class="hero-text">
+        <h2>Premium Video Meetings & Live Collaboration</h2>
+        <p>Connect peer-to-peer with crystal clear audio, low-latency video, real-time screen sharing, and an interactive team whiteboard.</p>
+        <button class="btn btn-primary" style="padding:12px 24px; font-size:1rem;" onclick="createInstantMeeting()">+ Start Instant Meeting</button>
+      </div>
+
+      <!-- Join by Room Code Box -->
+      <div class="join-box">
+        <h3 style="font-size:1.1rem; font-weight:700; margin-bottom:12px;">Join with Code</h3>
+        <p style="color:#94a3b8; font-size:0.85rem; margin-bottom:14px;">Enter the meeting room code provided by the organizer.</p>
+        <form onsubmit="handleJoinByCode(event)">
+          <input type="text" id="joinRoomCode" class="form-input" placeholder="e.g. abc-def-ghi" required>
+          <button type="submit" class="btn btn-secondary" style="width:100%; justify-content:center; padding:11px;">Join Meeting Room</button>
+        </form>
+      </div>
+    </div>
+
+    <!-- Recent Meeting Rooms Section -->
+    <div style="margin-top:40px;">
+      <h3 style="font-size:1.3rem; font-weight:700; margin-bottom:6px;">Your Meeting History</h3>
+      <p style="color:#94a3b8; font-size:0.9rem;">Quickly jump back into your recent collaborative rooms.</p>
+      
+      <div class="recent-rooms-grid" id="recentRoomsContainer">
+        <p style="color:#94a3b8; padding:20px;">Loading your recent rooms...</p>
+      </div>
+    </div>
+  </main>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="app.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      if (checkAuthProtection()) {
+        const user = getStoredUser();
+        if (user) {
+          document.getElementById('navUserName').textContent = user.name;
+        }
+        loadRecentRooms();
+      }
+    });
+
+    async function loadRecentRooms() {
+      const container = document.getElementById('recentRoomsContainer');
+      const token = getAuthToken();
+
+      try {
+        const res = await fetch('/api/rooms', {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        const data = await res.json();
+
+        if (!data.rooms || data.rooms.length === 0) {
+          container.innerHTML = `
+            <div style="grid-column: 1 / -1; background:#1e222d; padding:24px; border-radius:10px; border:1px solid #333a4d; text-align:center; color:#94a3b8;">
+              No recent meetings yet. Click <strong>Start Instant Meeting</strong> above to launch your first session!
+            </div>
+          `;
+          return;
+        }
+
+        container.innerHTML = data.rooms.map(r => `
+          <div class="room-card" onclick="window.location.href='room.html?room=${r.room_code}'">
+            <h4 style="font-size:1rem; font-weight:700; color:#fff; margin-bottom:6px;">${escapeHtml(r.title)}</h4>
+            <div style="font-family:monospace; background:#12141a; padding:4px 8px; border-radius:4px; font-size:0.85rem; color:#60a5fa; display:inline-block; margin-bottom:10px;">
+              ${r.room_code}
+            </div>
+            <p style="font-size:0.78rem; color:#94a3b8;">Created on ${new Date(r.created_at).toLocaleDateString()}</p>
+          </div>
+        `).join('');
+      } catch (err) {
+        console.error('Failed to load rooms:', err);
+      }
+    }
+
+    async function createInstantMeeting() {
+      const token = getAuthToken();
+      try {
+        const res = await fetch('/api/rooms', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify({ title: 'Full Stack Sprint Discussion' })
+        });
+        const data = await res.json();
+        if (res.ok) {
+          window.location.href = `room.html?room=${data.room.room_code}`;
+        }
+      } catch (err) {
+        alert('Could not create meeting room');
+      }
+    }
+
+    function handleJoinByCode(e) {
+      e.preventDefault();
+      const code = document.getElementById('joinRoomCode').value.trim();
+      if (code) {
+        window.location.href = `room.html?room=${encodeURIComponent(code)}`;
+      }
+    }
+  </script>
+</body>
+</html>
