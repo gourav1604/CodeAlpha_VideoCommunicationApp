@@ -24,11 +24,43 @@ const io = new Server(server, {
 const PORT = process.env.PORT || 7000;
 const JWT_SECRET = process.env.JWT_SECRET || 'codealpha_video_comm_secret_2026';
 
+// Security Headers Middleware
+app.use((req, res, next) => {
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  res.setHeader('X-Frame-Options', 'SAMEORIGIN');
+  res.setHeader('X-XSS-Protection', '1; mode=block');
+  res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+  next();
+});
+
 // Middleware for parsing JSON requests and serving static frontend files
 app.use(cors());
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+app.use(express.json({ limit: '2mb' }));
+app.use(express.urlencoded({ extended: true, limit: '2mb' }));
 app.use(express.static(path.join(__dirname, 'public')));
+
+// In-Memory Rate Limiting for Authentication endpoints
+const authRateLimits = new Map();
+function rateLimitAuth(req, res, next) {
+  const ip = req.ip || req.connection.remoteAddress || 'unknown';
+  const now = Date.now();
+  const windowMs = 15 * 60 * 1000;
+  const maxAttempts = 60;
+
+  const record = authRateLimits.get(ip) || { count: 0, resetAt: now + windowMs };
+  if (now > record.resetAt) {
+    record.count = 0;
+    record.resetAt = now + windowMs;
+  }
+
+  record.count++;
+  authRateLimits.set(ip, record);
+
+  if (record.count > maxAttempts) {
+    return res.status(429).json({ error: 'Too many authentication attempts. Please try again later.' });
+  }
+  next();
+}
 
 // Authentication Middleware: verifies incoming JWT bearer tokens
 function authenticateToken(req, res, next) {
@@ -151,29 +183,35 @@ io.on('connection', (socket) => {
 
   // 7. In-Meeting Text Chat
   socket.on('chat-message', (messageText) => {
-    if (socket.roomId && messageText && messageText.trim()) {
+    if (typeof messageText !== 'string') return;
+    const cleanText = messageText.trim();
+    if (socket.roomId && cleanText && cleanText.length <= 2000) {
       io.to(socket.roomId).emit('chat-message', {
         senderId: socket.id,
         senderName: socket.userName,
         senderAvatar: socket.userAvatar,
-        text: messageText.trim(),
+        text: cleanText,
         timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
       });
     }
   });
 
-  // 8. In-Meeting File Sharing
+  // 8. In-Meeting File Sharing (Size & type validation)
   socket.on('file-share', (filePayload) => {
-    if (socket.roomId && filePayload) {
-      io.to(socket.roomId).emit('file-share', {
-        senderName: socket.userName,
-        fileName: filePayload.fileName,
-        fileType: filePayload.fileType,
-        fileSize: filePayload.fileSize,
-        fileData: filePayload.fileData,
-        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-      });
-    }
+    if (!socket.roomId || !filePayload || typeof filePayload !== 'object') return;
+    const { fileName, fileType, fileSize, fileData } = filePayload;
+    // Limit data payload to ~15MB base64 string
+    if (typeof fileData !== 'string' || fileData.length > 15 * 1024 * 1024) return;
+    if (typeof fileName !== 'string' || fileName.length > 255) return;
+
+    io.to(socket.roomId).emit('file-share', {
+      senderName: socket.userName,
+      fileName: fileName.substring(0, 100),
+      fileType: typeof fileType === 'string' ? fileType.substring(0, 50) : '',
+      fileSize: typeof fileSize === 'string' ? fileSize.substring(0, 20) : '',
+      fileData: fileData,
+      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+    });
   });
 
   // 9. Handle Disconnect / Leaving Meeting
@@ -201,14 +239,24 @@ io.on('connection', (socket) => {
    ========================================================================== */
 
 // 1. User Registration
-app.post('/api/auth/register', async (req, res) => {
+app.post('/api/auth/register', rateLimitAuth, async (req, res) => {
   const { name, email, password } = req.body;
 
   if (!name || !email || !password) {
     return res.status(400).json({ error: 'Please provide name, email, and password.' });
   }
 
-  const cleanEmail = email.trim().toLowerCase();
+  const cleanName = String(name).trim();
+  const cleanEmail = String(email).trim().toLowerCase();
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+  if (!emailRegex.test(cleanEmail)) {
+    return res.status(400).json({ error: 'Please enter a valid email address format.' });
+  }
+
+  if (password.length < 6) {
+    return res.status(400).json({ error: 'Password must be at least 6 characters long.' });
+  }
 
   db.get('SELECT * FROM users WHERE email = ?', [cleanEmail], async (err, existing) => {
     if (err) return res.status(500).json({ error: 'Database query error.' });
@@ -246,7 +294,7 @@ app.post('/api/auth/register', async (req, res) => {
 });
 
 // 2. User Login
-app.post('/api/auth/login', (req, res) => {
+app.post('/api/auth/login', rateLimitAuth, (req, res) => {
   const { email, password } = req.body;
 
   if (!email || !password) {

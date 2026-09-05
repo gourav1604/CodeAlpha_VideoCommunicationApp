@@ -594,7 +594,12 @@ function handleFileUpload(event) {
 
 function appendSharedFile(f) {
   const container = document.getElementById('chatMessages');
-  if (!container) return;
+  if (!container || !f) return;
+
+  // Validate that fileData is a safe data/blob URI to prevent pseudo-protocol injection
+  const rawData = String(f.fileData || '');
+  const isSafeDataUri = rawData.startsWith('data:') || rawData.startsWith('blob:');
+  const safeHref = isSafeDataUri ? rawData : '#';
 
   const bubble = document.createElement('div');
   bubble.className = 'chat-bubble';
@@ -602,14 +607,14 @@ function appendSharedFile(f) {
   bubble.innerHTML = `
     <div class="chat-sender">
       <span>📎 ${escapeHtml(f.senderName)} shared a file</span>
-      <span style="font-size:0.75rem; color:#94a3b8;">${f.timestamp}</span>
+      <span style="font-size:0.75rem; color:#94a3b8;">${f.timestamp || ''}</span>
     </div>
     <div style="display:flex; align-items:center; justify-content:space-between; margin-top:6px;">
       <div>
-        <strong>${escapeHtml(f.fileName)}</strong>
-        <p style="font-size:0.75rem; color:#94a3b8;">${f.fileSize}</p>
+        <strong>${escapeHtml(f.fileName || 'Shared File')}</strong>
+        <p style="font-size:0.75rem; color:#94a3b8;">${escapeHtml(f.fileSize || '')}</p>
       </div>
-      <a href="${f.fileData}" download="${f.fileName}" class="btn btn-primary" style="padding:4px 10px; font-size:0.8rem; text-decoration:none;">Download</a>
+      ${isSafeDataUri ? `<a href="${safeHref}" download="${escapeHtml(f.fileName || 'file')}" class="btn btn-primary" style="padding:4px 10px; font-size:0.8rem; text-decoration:none;">Download</a>` : '<span style="font-size:0.75rem; color:#ef4444;">Invalid file</span>'}
     </div>
   `;
 
